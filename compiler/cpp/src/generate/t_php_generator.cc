@@ -117,6 +117,7 @@ class t_php_generator : public t_oop_generator {
   void generate_php_struct_reader(std::ofstream& out, t_struct* tstruct);
   void generate_php_struct_writer(std::ofstream& out, t_struct* tstruct);
   void generate_php_function_helpers(t_function* tfunction);
+  void generate_php_struct_required_validator(ofstream& out, t_struct* tstruct);
 
   void generate_php_type_spec(std::ofstream &out, t_type* t);
   void generate_php_struct_spec(std::ofstream &out, t_struct* tstruct);
@@ -775,7 +776,10 @@ void t_php_generator::generate_php_struct_definition(ofstream& out,
     endl;
 
   generate_php_struct_reader(out, tstruct);
+  out << endl;
   generate_php_struct_writer(out, tstruct);
+  out << endl;
+  generate_php_struct_required_validator(out, tstruct);
 
   indent_down();
   out <<
@@ -922,6 +926,8 @@ void t_php_generator::generate_php_struct_writer(ofstream& out,
   }
   indent_up();
 
+  indent(out) << "$this->validate();" << endl;
+
   if (oop_) {
     indent(out) << "return $this->_write('" << tstruct->get_name() << "', self::$_TSPEC, $output);" << endl;
     scope_down(out);
@@ -997,9 +1003,34 @@ void t_php_generator::generate_php_struct_writer(ofstream& out,
     indent() << "return $xfer;" << endl;
 
   indent_down();
-  out <<
-    indent() << "}" << endl <<
-    endl;
+  out << indent() << "}" << endl << endl;
+}
+
+void t_php_generator::generate_php_struct_required_validator(ofstream& out,
+                                                             t_struct* tstruct) {
+  indent(out) << "public function validate() {" << endl;
+  indent_up();
+
+  const vector<t_field*>& fields = tstruct->get_members();
+
+  if (fields.size() > 0) {
+    vector<t_field*>::const_iterator f_iter;
+
+    for (f_iter = fields.begin(); f_iter != fields.end(); ++f_iter) {
+      t_field* field = (*f_iter);
+      if (field->get_req() == t_field::T_REQUIRED) {
+        indent(out) << "if ($this->" << field->get_name() << " === null) {" << endl;
+        indent_up();
+        indent(out) << "throw new TProtocolException('Required field " <<
+          tstruct->get_name() << "." << field->get_name() << " is unset!')" << endl;
+        indent_down();
+        indent(out) << "}" << endl;
+      }
+    }
+  }
+
+  indent_down();
+  indent(out) << "}" << endl << endl;
 }
 
 /**
