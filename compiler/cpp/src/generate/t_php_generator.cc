@@ -683,6 +683,10 @@ void t_php_generator::generate_php_struct_spec(ofstream& out,
     indent_up();
     out <<
       indent() << "'var' => '" << (*m_iter)->get_name() << "'," << endl;
+    out <<
+      indent() <<
+      "'req' => " <<
+      ((*m_iter)->get_req() == t_field::T_REQUIRED ? "true" : "false") << "," << endl;
     generate_php_type_spec(out, t);
     indent(out) << ")," << endl;
     indent_down();
